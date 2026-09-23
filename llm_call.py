@@ -1,16 +1,7 @@
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-import os
+"""Backward-compatible entry point for the sampling agent."""
 
-load_dotenv()
+from sampling_agent import main
 
-llm = ChatOpenAI(
-    model=os.getenv("MODEL"),
-    max_tokens=None,
-    base_url=os.getenv("BASE_URL"),
-    api_key=os.getenv("API_KEY"),
-)
 
-response = llm.invoke(input("Hi! I am an AI assistant. Ask me anything! : \n"))
-
-print(response.content)
+if __name__ == "__main__":
+    raise SystemExit(main())
