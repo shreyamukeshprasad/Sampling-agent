@@ -1,41 +1,47 @@
 # Counterparty Sampling Agent
 
-This project applies auditable counterparty-sampling rules to alerted transaction
-data. Calculations are deterministic; the instruction text is validated as policy
-input and is not used to perform arithmetic.
+The implementation is contained in `build_1`:
 
-The currently supported method is **Top 3 & 3**:
+- `agent.py` reads the three inputs, calculates counterparties, and creates samples.
+- `sampling_prompt.txt` contains the detailed Top 3 & 3 methodology.
+- `requirements.txt` lists the required Python package.
+- `test_agent.py` tests the calculations and rule-level grouping.
+- `sampling_results_by_rule.xlsx` is the result generated from the sample data.
 
-- aggregate cumulative value and transaction volume by counterparty;
-- pool originator-side and beneficiary-side counterparties;
-- exclude the inferred focal party;
-- select the top three by cumulative value;
-- select the top three by volume, breaking volume ties by cumulative value;
-- return the union, or the full population when fewer than three counterparties exist.
+Sampling is performed separately for every `Alert ID + Rule ID` combination. The
+agent first calculates cumulative value and transaction volume for every eligible
+counterparty in that rule, then applies the mapped sampling method.
+
+The output workbook contains:
+
+- one combined sheet of sampled counterparties;
+- one combined sheet of all counterparty calculations and rankings;
+- one separate worksheet for each rule sample.
 
 ## Run
 
+From the `build_1` folder:
+
 ```powershell
-python sampling_agent.py `
-  --instructions-file sampling_instructions.txt `
+python agent.py `
+  --prompt sampling_prompt.txt `
   --mapping "C:\path\to\SAM_Rules.xlsx" `
   --transactions "C:\path\to\AML_Transactions_Full.xlsx" `
-  --output sampling_results.xlsx
+  --output sampling_results_by_rule.xlsx
 ```
 
-The output workbook contains a run summary, sampled counterparties, and the complete
-ranked counterparty population. If focal-party inference is ambiguous, rerun with an
-explicit per-alert override:
+If focal-party inference is ambiguous, provide an override for the affected alert
+and rule:
 
 ```powershell
-python sampling_agent.py ... --focal-party "SAM1-251811=ROYC"
+python agent.py ... --focal-party "ALERT_ID|RULE_ID=PARTY_ID"
 ```
-
-Mapping methods other than `Top 3 & 3` fail explicitly until their methodology is
-implemented.
 
 ## Test
 
 ```powershell
-python -m unittest discover -s tests -v
+python -m unittest -v test_agent.py
 ```
+
+Only `Top 3 & 3` is currently implemented. Other mapped sampling methods stop with a
+clear error until their methodology is supplied.

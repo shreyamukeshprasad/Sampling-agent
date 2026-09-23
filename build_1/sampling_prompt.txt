@@ -1,0 +1,72 @@
+COUNTERPARTY SAMPLING INSTRUCTIONS
+
+Objective
+For every Alert ID and Rule ID combination in the transaction file, calculate the
+activity of each counterparty and create a separate counterparty sample for that
+rule. Never combine transactions from different Rule IDs when calculating rankings
+or selecting the sample.
+
+Inputs
+1. A mapping workbook containing the columns "SAM Rule ID" and "Sampling Method".
+2. A transaction workbook containing Alert ID, Rule ID, Amount, and originator and
+   beneficiary party identifiers, account numbers, and names.
+3. These sampling instructions.
+
+Rule lookup and grouping
+- Match each transaction Rule ID exactly to the SAM Rule ID in the mapping workbook.
+- Group transactions by Alert ID and then by Rule ID.
+- Resolve and apply the Sampling Method separately to every group.
+- Stop with a clear error if a Rule ID is missing from the mapping or its sampling
+  method is not implemented. Do not guess or substitute a methodology.
+
+Counterparty identification
+- Evaluate parties from both the originator and beneficiary sides.
+- Identify a party using Party ID when it is available. If Party ID is blank, use
+  Account Number. If both are blank, use Name.
+- Normalize capitalization, spaces, and punctuation when comparing identifiers.
+- If the same non-focal party appears on both sides of one transaction, count that
+  transaction only once for that counterparty.
+
+Focal party handling
+- Infer the focal party separately for each Alert ID and Rule ID group.
+- For beneficiary rules, use the recurring beneficiary party; for originator rules,
+  use the recurring originator party. Rule ID tokens such as BEN, BENE, BENEFICIARY,
+  ORG, ORI, ORIG, and ORIGINATOR indicate the expected focal side.
+- If rule direction does not produce one clear focal party, use the recurring party
+  found on both transaction sides.
+- Exclude the focal party from all counterparty calculations and samples, regardless
+  of which side it appears on.
+- Stop and request an explicit focal-party override when inference is ambiguous.
+
+Deterministic calculations
+- Calculate each counterparty before sampling.
+- Cumulative Value is the sum of the absolute Amount values for that counterparty
+  within the current Alert ID and Rule ID group.
+- Transaction Volume is the number of distinct transaction rows involving that
+  counterparty within the current Alert ID and Rule ID group.
+- Preserve the source transaction row numbers and the side or sides on which each
+  counterparty appeared for audit support.
+
+Top 3 & 3 sampling method
+- Rank counterparties by Cumulative Value from highest to lowest. For an equal value,
+  rank the higher Transaction Volume first, followed by normalized identifier for a
+  stable final tie-break.
+- Select the first three counterparties in the cumulative-value ranking.
+- Independently rank counterparties by Transaction Volume from highest to lowest.
+- If counterparties have equal Transaction Volume, rank the higher Cumulative Value
+  first. Use normalized identifier only as a stable final tie-break.
+- Select the first three counterparties in the transaction-volume ranking.
+- The final sample is the union of the value and volume selections. A counterparty
+  selected by both tests appears once and records both selection reasons.
+- The final sample will normally contain between three and six counterparties.
+- If fewer than three eligible counterparties exist for a rule, sample every eligible
+  counterparty for that rule.
+
+Output requirements
+- Create one Excel workbook for the run.
+- Include a combined sheet of sampled counterparties with Alert ID and Rule ID.
+- Include a combined sheet containing the deterministic calculations and rankings
+  for every eligible counterparty, including those not sampled.
+- Include a separate worksheet for each Alert ID and Rule ID sample.
+- Show cumulative value, transaction volume, both ranks, selection reasons, source
+  rows, focal party, and focal-party inference source so the result can be reviewed.
